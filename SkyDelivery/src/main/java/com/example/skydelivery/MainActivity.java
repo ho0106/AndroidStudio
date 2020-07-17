@@ -2,6 +2,7 @@ package com.example.skydelivery;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -15,6 +16,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -49,7 +51,9 @@ import com.o3dr.services.android.lib.drone.companion.solo.SoloAttributes;
 import com.o3dr.services.android.lib.drone.companion.solo.SoloState;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
 import com.o3dr.services.android.lib.drone.connection.ConnectionType;
+import com.o3dr.services.android.lib.drone.mission.item.command.YawCondition;
 import com.o3dr.services.android.lib.drone.property.Altitude;
+import com.o3dr.services.android.lib.drone.property.Battery;
 import com.o3dr.services.android.lib.drone.property.Gps;
 import com.o3dr.services.android.lib.drone.property.Home;
 import com.o3dr.services.android.lib.drone.property.Speed;
@@ -60,7 +64,10 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
+import org.w3c.dom.Text;
+
 import java.io.IOException;
+import java.text.AttributedCharacterIterator;
 import java.util.List;
 
 import static com.o3dr.android.client.apis.ExperimentalApi.getApi;
@@ -163,6 +170,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 else if(cb1.isChecked()==false)mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL,false);
             }
         });
+
+        this.modeSelector = (Spinner) findViewById(R.id.modeSelect);
+        this.modeSelector.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                onFlightModeSelected(view);
+                ((TextView)parent.getChildAt(0)).setTextColor(Color.WHITE);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
+            }
+        });
     }
 
     @Override
@@ -261,7 +282,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onStart() {
         super.onStart();
         this.controlTower.connect(this);
-        //updateVehicleModesForType(this.droneType);
+        updateVehicleModesForType(this.droneType);
     }
 
     @Override
@@ -290,21 +311,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         alertUser("DroneKit-Android Interrupted");
     }
 
-    public void onBtnConnectTap(View view) {
-        if (this.drone.isConnected()) {
-            this.drone.disconnect();
-        } else {
-            Spinner connectionSelector = (Spinner) findViewById(R.id.selectConnectionType);
-            int selectedConnectionType = connectionSelector.getSelectedItemPosition();
-
-            ConnectionParameter connectionParams = selectedConnectionType == ConnectionType.TYPE_USB
-                    ? ConnectionParameter.newUsbConnection(null)
-                    : ConnectionParameter.newUdpConnection(null);
-
-            this.drone.connect(connectionParams);
-        }
-
-    }
+    //Drone Listener
 
     @Override
     public void onDroneEvent(String event, Bundle extras) {
@@ -312,21 +319,55 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_CONNECTED:
                 alertUser("Drone Connected");
                 updateConnectedButton(this.drone.isConnected());
+                updateArmButton();
                 checkSoloState();
                 break;
 
             case AttributeEvent.STATE_DISCONNECTED:
                 alertUser("Drone Disconnected");
                 updateConnectedButton(this.drone.isConnected());
+                updateArmButton();
                 break;
 
             case AttributeEvent.STATE_UPDATED:
+            case AttributeEvent.STATE_ARMING:
+                updateArmButton();
+                break;
+
+            case AttributeEvent.TYPE_UPDATED:
+                Type newDroneType = this.drone.getAttribute(AttributeType.TYPE);
+                if (newDroneType.getDroneType() != this.droneType) {
+                    this.droneType = newDroneType.getDroneType();
+                    updateVehicleModesForType(this.droneType);
+                }
+                break;
+
+            case AttributeEvent.STATE_VEHICLE_MODE:
+                updateVehicleMode();
+                break;
+
+            case AttributeEvent.BATTERY_UPDATED:
+                updateVoltage();
+                break;
+
             case AttributeEvent.SPEED_UPDATED:
                 updateSpeed();
                 break;
 
             case AttributeEvent.ALTITUDE_UPDATED:
                 updateAltitude();
+                break;
+
+            case AttributeEvent.GPS_COUNT:
+                updateGps();
+                break;
+
+            /*case AttributeEvent.GPS_POSITION:
+                updateYaw();
+                break;*/
+
+            case AttributeEvent.HOME_UPDATED:
+                //updateDistanceFromHome();
                 break;
 
             default:
@@ -350,6 +391,137 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    //UI Events
+
+    public void onBtnConnectTap(View view) {
+        if (this.drone.isConnected()) {
+            this.drone.disconnect();
+        } else {
+            Spinner connectionSelector = (Spinner) findViewById(R.id.selectConnectionType);
+            int selectedConnectionType = connectionSelector.getSelectedItemPosition();
+
+            ConnectionParameter connectionParams = selectedConnectionType == ConnectionType.TYPE_UDP
+                    ? ConnectionParameter.newUsbConnection(null)
+                    : ConnectionParameter.newUdpConnection(null);
+
+            this.drone.connect(connectionParams);
+        }
+    }
+
+    public void onFlightModeSelected(View view) {
+        VehicleMode vehicleMode = (VehicleMode) this.modeSelector.getSelectedItem();
+
+        VehicleApi.getApi(this.drone).setVehicleMode(vehicleMode, new AbstractCommandListener() {
+            @Override
+            public void onSuccess() {
+                alertUser("Vehicle mode change successful.");
+            }
+
+            @Override
+            public void onError(int executionError) {
+                alertUser("Vehicle mode change failed: " + executionError);
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("Vehicle mode change timed out.");
+            }
+        });
+    }
+
+    public void onArmButtonTap(View view) {
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+
+        if (vehicleState.isFlying()) {
+            // Land
+            VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
+                @Override
+                public void onError(int executionError) {
+                    alertUser("Unable to land the vehicle.");
+                }
+
+                @Override
+                public void onTimeout() {
+                    alertUser("Unable to land the vehicle.");
+                }
+            });
+        } else if (vehicleState.isArmed()) {
+            // Take off
+            ControlApi.getApi(this.drone).takeoff(10, new AbstractCommandListener() {
+
+                @Override
+                public void onSuccess() {
+                    alertUser("Taking off...");
+                }
+
+                @Override
+                public void onError(int i) {
+                    alertUser("Unable to take off.");
+                }
+
+                @Override
+                public void onTimeout() {
+                    alertUser("Unable to take off.");
+                }
+            });
+        } else if (!vehicleState.isConnected()) {
+            // Connect
+            alertUser("Connect to a drone first");
+        } else {
+            // Connected but not Armed
+            VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
+                @Override
+                public void onError(int executionError) {
+                    alertUser("Unable to arm vehicle.");
+                }
+
+                @Override
+                public void onTimeout() {
+                    alertUser("Arming operation timed out.");
+                }
+            });
+        }
+    }
+
+    //UI Updating
+
+    protected void updateConnectedButton(Boolean isConnected) {
+        Button connectButton = (Button) findViewById(R.id.btnConnect);
+        if (isConnected) {
+            connectButton.setText("Disconnect");
+        } else {
+            connectButton.setText("Connect");
+        }
+    }
+
+    protected void updateArmButton() {
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        Button armButton = (Button) findViewById(R.id.btnArmTakeOff);
+
+        if (!this.drone.isConnected()) {
+            armButton.setVisibility(View.INVISIBLE);
+        } else {
+            armButton.setVisibility(View.VISIBLE);
+        }
+
+        if (vehicleState.isFlying()) {
+            // Land
+            armButton.setText("LAND");
+        } else if (vehicleState.isArmed()) {
+            // Take off
+            armButton.setText("TAKE OFF");
+        } else if (vehicleState.isConnected()) {
+            // Connected but not Armed
+            armButton.setText("ARM");
+        }
+    }
+
+    protected void updateVoltage() {
+        TextView voltageTextView = (TextView) findViewById(R.id.voltageValueTextView);
+        Battery droneBattery = this.drone.getAttribute(AttributeType.BATTERY);
+        voltageTextView.setText(String.format("%3.1f", droneBattery.getBatteryVoltage()) + "V");
+    }
+
     protected void updateAltitude() {
         TextView altitudeTextView = (TextView) findViewById(R.id.altitudeValueTextView);
         Altitude droneAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
@@ -362,13 +534,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         speedTextView.setText(String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
     }
 
-    protected void updateConnectedButton(Boolean isConnected) {
-        Button connectButton = (Button) findViewById(R.id.btnConnect);
-        if (isConnected) {
-            connectButton.setText("Disconnect");
-        } else {
-            connectButton.setText("Connect");
-        }
+    /*protected void updateYaw() {
+        TextView yawTextView = (TextView) findViewById(R.id.YAWValueTextView);
+        YawCondition droneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
+        yawTextView.setText(String.format("%f",droneYaw.getAngle()) + "deg");
+    }*/
+
+    protected void updateGps() {
+        TextView gpsTextView = (TextView) findViewById(R.id.gpsValueTextView);
+        Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
+        gpsTextView.setText(String.format("%d",droneGps.getSatellitesCount()));
+    }
+
+    protected void updateVehicleModesForType(int droneType) {
+
+        List<VehicleMode> vehicleModes = VehicleMode.getVehicleModePerDroneType(droneType);
+        ArrayAdapter<VehicleMode> vehicleModeArrayAdapter = new ArrayAdapter<VehicleMode>(this, android.R.layout.simple_spinner_item, vehicleModes);
+        vehicleModeArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        this.modeSelector.setAdapter(vehicleModeArrayAdapter);
+    }
+
+    protected void updateVehicleMode() {
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        VehicleMode vehicleMode = vehicleState.getVehicleMode();
+        ArrayAdapter arrayAdapter = (ArrayAdapter) this.modeSelector.getAdapter();
+        this.modeSelector.setSelection(arrayAdapter.getPosition(vehicleMode));
     }
 
     // Helper methods
@@ -377,10 +567,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void alertUser(String message) {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
         Log.d(TAG, message);
-    }
-
-    private void runOnMainThread(Runnable runnable) {
-        mainHandler.post(runnable);
     }
 
     @Override

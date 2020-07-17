@@ -3,7 +3,7 @@
     <string name="action_settings">Settings</string>
 
     <string-array name="drone_connection_types">
-        <item>USB</item>
         <item>UDP</item>
+        <item>USB</item>
     </string-array>
 </resources>
