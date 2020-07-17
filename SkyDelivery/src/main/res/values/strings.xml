@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">SkyDelivery</string>
+    <string name="action_settings">Settings</string>
+
+    <string-array name="drone_connection_types">
+        <item>USB</item>
+        <item>UDP</item>
+    </string-array>
+</resources>
