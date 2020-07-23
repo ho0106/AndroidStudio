@@ -33,12 +33,11 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabBasic"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="115sp"
-        android:layout_marginBottom="20dp"
-        android:src="@drawable/ic_action_basic"
+        android:layout_marginEnd="150dp"
+        android:layout_marginBottom="10dp"
         android:visibility="invisible"
         app:backgroundTint="#FFFFFF"
         app:elevation="6dp"
@@ -47,12 +46,11 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabNavi"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="105sp"
-        android:layout_marginBottom="55dp"
-        android:src="@drawable/ic_action_navi"
+        android:layout_marginEnd="130dp"
+        android:layout_marginBottom="58dp"
         android:visibility="invisible"
         app:backgroundTint="#FFFFFF"
         app:elevation="6dp"
@@ -61,12 +59,11 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabSatellite"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="83sp"
-        android:layout_marginBottom="83dp"
-        android:src="@drawable/ic_action_satellite"
+        android:layout_marginEnd="100dp"
+        android:layout_marginBottom="100dp"
         android:visibility="invisible"
         app:backgroundTint="#FFFFFF"
         app:elevation="6dp"
@@ -75,12 +72,11 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabHybrid"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="55sp"
-        android:layout_marginBottom="105dp"
-        android:src="@drawable/ic_action_hybrid"
+        android:layout_marginEnd="52sp"
+        android:layout_marginBottom="130dp"
         android:visibility="invisible"
         app:backgroundTint="#FFFFFF"
         app:elevation="6dp"
@@ -89,25 +85,22 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabTerrain"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20sp"
-        android:layout_marginBottom="115dp"
-        android:src="@drawable/ic_action_terrain"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="150dp"
         android:visibility="invisible"
         app:backgroundTint="#FFFFFF"
         app:elevation="6dp"
-        app:fabSize="auto"
         app:pressedTranslationZ="12dp" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabMain"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
         android:layout_gravity="bottom|end"
         android:layout_margin="15sp"
-        android:src="@drawable/ic_action_add"
         app:backgroundTint="#7CB5DB" />
 
     <android.support.v7.widget.CardView
@@ -261,7 +254,7 @@
 
                     <TextView
                         android:id="@+id/YAWValueTextView"
-                        android:layout_width="80dp"
+                        android:layout_width="100dp"
                         android:layout_height="wrap_content"
                         android:paddingTop="5dp"
                         android:paddingBottom="5dp"

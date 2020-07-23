@@ -1,17 +1,23 @@
 package com.example.skydelivery;
 
+import android.Manifest;
 import android.content.Context;
-import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -25,26 +31,23 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.naver.maps.geometry.LatLng;
+import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.NaverMapSdk;
 import com.naver.maps.map.OnMapReadyCallback;
+import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 
+import com.naver.maps.map.overlay.OverlayImage;
 import com.o3dr.android.client.ControlTower;
 import com.o3dr.android.client.Drone;
 import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.android.client.interfaces.LinkListener;
 import com.o3dr.android.client.interfaces.TowerListener;
-import com.o3dr.android.client.utils.video.MediaCodecManager;
 import com.o3dr.android.client.apis.ControlApi;
-import com.o3dr.android.client.apis.ExperimentalApi;
 import com.o3dr.android.client.apis.VehicleApi;
-import com.o3dr.android.client.apis.solo.SoloCameraApi;
-import com.o3dr.android.client.utils.video.DecoderListener;
-import com.o3dr.android.client.utils.video.MediaCodecManager;
 import com.o3dr.services.android.lib.coordinate.LatLong;
-import com.o3dr.services.android.lib.coordinate.LatLongAlt;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.companion.solo.SoloAttributes;
@@ -53,9 +56,9 @@ import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
 import com.o3dr.services.android.lib.drone.connection.ConnectionType;
 import com.o3dr.services.android.lib.drone.mission.item.command.YawCondition;
 import com.o3dr.services.android.lib.drone.property.Altitude;
+import com.o3dr.services.android.lib.drone.property.Attitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
 import com.o3dr.services.android.lib.drone.property.Gps;
-import com.o3dr.services.android.lib.drone.property.Home;
 import com.o3dr.services.android.lib.drone.property.Speed;
 import com.o3dr.services.android.lib.drone.property.State;
 import com.o3dr.services.android.lib.drone.property.Type;
@@ -64,16 +67,10 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
-import org.w3c.dom.Text;
-
-import java.io.IOException;
-import java.text.AttributedCharacterIterator;
 import java.util.List;
 
-import static com.o3dr.android.client.apis.ExperimentalApi.getApi;
 
-
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, View.OnClickListener, DroneListener, TowerListener, LinkListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, View.OnClickListener, DroneListener, TowerListener {
 
     private static final String TAG = "";
     NaverMap mNaverMap;
@@ -85,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int droneType = Type.TYPE_UNKNOWN;
     private ControlTower controlTower;
     private final Handler handler = new Handler();
+    private Marker marker = new Marker();
 
     private static final int DEFAULT_UDP_PORT = 14550;
     private static final int DEFAULT_USB_BAUD_RATE = 57600;
@@ -120,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
 
         fab_open = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_open);
-        fab_close = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.fab_close);
+        fab_close = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_close);
         mFabMain = findViewById(R.id.fabMain);
         mFabBasic = findViewById(R.id.fabBasic);
         mFabNavi = findViewById(R.id.fabNavi);
@@ -154,20 +152,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         );
 
         FragmentManager fm = getSupportFragmentManager();
-        MapFragment mapFragment = (MapFragment)fm.findFragmentById(R.id.naverMap);
-        if(mapFragment == null) {
+        MapFragment mapFragment = (MapFragment) fm.findFragmentById(R.id.naverMap);
+        if (mapFragment == null) {
             mapFragment = MapFragment.newInstance();
             fm.beginTransaction().add(R.id.naverMap, mapFragment).commit();
         }
 
         mapFragment.getMapAsync(this);
 
-        final CheckBox cb1 = (CheckBox)findViewById(R.id.checkBox);
+        final CheckBox cb1 = (CheckBox) findViewById(R.id.checkBox);
         cb1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(cb1.isChecked() == true) mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL,true);
-                else if(cb1.isChecked()==false)mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL,false);
+                if (cb1.isChecked() == true)
+                    mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
+                else if (cb1.isChecked() == false)
+                    mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
             }
         });
 
@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 onFlightModeSelected(view);
-                ((TextView)parent.getChildAt(0)).setTextColor(Color.WHITE);
+                ((TextView) parent.getChildAt(0)).setTextColor(Color.WHITE);
             }
 
             @Override
@@ -270,10 +270,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         naverMap.setContentPadding(0, 0, 0, 200);
         naverMap.setMinZoom(5.0);
         naverMap.setMaxZoom(18.0);
-
-        Marker marker = new Marker();
-        marker.setPosition(new LatLng(35.944303,126.684297));
-        marker.setMap(naverMap);
     }
 
     //Drone Start
@@ -326,6 +322,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_DISCONNECTED:
                 alertUser("Drone Disconnected");
                 updateConnectedButton(this.drone.isConnected());
+                clearValue();
                 updateArmButton();
                 break;
 
@@ -362,12 +359,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updateGps();
                 break;
 
-            /*case AttributeEvent.GPS_POSITION:
+            case AttributeEvent.ATTITUDE_UPDATED:
                 updateYaw();
-                break;*/
+                break;
 
             case AttributeEvent.HOME_UPDATED:
                 //updateDistanceFromHome();
+                break;
+
+            case AttributeEvent.GPS_POSITION:
+                droneLocation();
                 break;
 
             default:
@@ -516,6 +517,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    public void droneLocation() {
+        
+        Gps droneInitLocation = this.drone.getAttribute(AttributeType.GPS);
+        Gps droneMoveLocation = droneInitLocation;
+
+        if (droneInitLocation.equals(droneMoveLocation)) {
+            marker.setPosition(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
+            marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
+            marker.setWidth(70);
+            marker.setHeight(70);
+            marker.setMap(mNaverMap);
+        } else {
+            marker.setMap(null);
+        }
+    }
+
+    protected  void clearValue() {
+        TextView voltageTextView = (TextView) findViewById(R.id.voltageValueTextView);
+        voltageTextView.setText(String.format("0V"));
+        TextView altitudeTextView = (TextView) findViewById(R.id.altitudeValueTextView);
+        altitudeTextView.setText(String.format("0m"));
+        TextView speedTextView = (TextView) findViewById(R.id.speedValueTextView);
+        speedTextView.setText(String.format("0m/s"));
+        TextView yawTextView = (TextView) findViewById(R.id.YAWValueTextView);
+        yawTextView.setText(String.format("0deg"));
+        TextView gpsTextView = (TextView) findViewById(R.id.gpsValueTextView);
+        gpsTextView.setText(String.format("0"));
+    }
+
     protected void updateVoltage() {
         TextView voltageTextView = (TextView) findViewById(R.id.voltageValueTextView);
         Battery droneBattery = this.drone.getAttribute(AttributeType.BATTERY);
@@ -534,16 +564,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         speedTextView.setText(String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
     }
 
-    /*protected void updateYaw() {
+    protected void updateYaw() {
         TextView yawTextView = (TextView) findViewById(R.id.YAWValueTextView);
-        YawCondition droneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
-        yawTextView.setText(String.format("%f",droneYaw.getAngle()) + "deg");
-    }*/
+        Attitude droneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
+        yawTextView.setText(String.format("%3.1f",droneYaw.getYaw()) + "deg");
+    }
 
     protected void updateGps() {
         TextView gpsTextView = (TextView) findViewById(R.id.gpsValueTextView);
         Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
         gpsTextView.setText(String.format("%d",droneGps.getSatellitesCount()));
+    }
+
+    protected void updateLocation() {
+        Gps droneLocation = this.drone.getAttribute(AttributeType.GPS);
+        droneLocation.getPosition();
     }
 
     protected void updateVehicleModesForType(int droneType) {
@@ -567,21 +602,5 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void alertUser(String message) {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
         Log.d(TAG, message);
-    }
-
-    @Override
-    public void onLinkStateUpdated(@NonNull LinkConnectionStatus connectionStatus) {
-        switch(connectionStatus.getStatusCode()){
-            case LinkConnectionStatus.FAILED:
-                Bundle extras = connectionStatus.getExtras();
-                String msg = null;
-                if (extras != null) {
-                    msg = extras.getString(LinkConnectionStatus.EXTRA_ERROR_MSG);
-                }
-                alertUser("Connection Failed:" + msg);
-                break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + connectionStatus.getStatusCode());
-        }
     }
 }
