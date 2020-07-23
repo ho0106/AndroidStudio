@@ -31,6 +31,21 @@
         android:onClick="onArmButtonTap"
         android:visibility="invisible" />
 
+    <Button
+        android:id="@+id/btnClear"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginLeft="10dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/ic_button_style"
+        android:backgroundTint="#FF7CB5DB"
+        android:onClick="onClearButtonTap"
+        android:text="Clear"
+        android:textColor="#ffffff"
+        android:textSize="20dp"
+        android:visibility="invisible" />
+
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabBasic"
         android:layout_width="60dp"

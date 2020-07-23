@@ -2,6 +2,7 @@ package com.example.skydelivery;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -16,6 +17,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.PermissionChecker;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -40,6 +42,8 @@ import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 
 import com.naver.maps.map.overlay.OverlayImage;
+import com.naver.maps.map.overlay.PolygonOverlay;
+import com.naver.maps.map.overlay.PolylineOverlay;
 import com.o3dr.android.client.ControlTower;
 import com.o3dr.android.client.Drone;
 import com.o3dr.android.client.interfaces.DroneListener;
@@ -67,6 +71,8 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -78,11 +84,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     FloatingActionButton mFabMain, mFabBasic, mFabNavi, mFabSatellite, mFabHybrid, mFabTerrain;
     Boolean openFlag = false;
 
+
+
     private Drone drone;
     private int droneType = Type.TYPE_UNKNOWN;
     private ControlTower controlTower;
     private final Handler handler = new Handler();
     private Marker marker = new Marker();
+    private List<LatLng> poly = new ArrayList<>();
+    private PolylineOverlay polylineOverlay = new PolylineOverlay();
 
     private static final int DEFAULT_UDP_PORT = 14550;
     private static final int DEFAULT_USB_BAUD_RATE = 57600;
@@ -315,6 +325,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_CONNECTED:
                 alertUser("Drone Connected");
                 updateConnectedButton(this.drone.isConnected());
+                updateClearButton();
                 updateArmButton();
                 checkSoloState();
                 break;
@@ -324,6 +335,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updateConnectedButton(this.drone.isConnected());
                 clearValue();
                 updateArmButton();
+                updateClearButton();
                 break;
 
             case AttributeEvent.STATE_UPDATED:
@@ -368,7 +380,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
 
             case AttributeEvent.GPS_POSITION:
-                droneLocation();
+                updateDroneLocation();
                 break;
 
             default:
@@ -432,6 +444,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void onArmButtonTap(View view) {
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
         if (vehicleState.isFlying()) {
             // Land
@@ -470,6 +483,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             alertUser("Connect to a drone first");
         } else {
             // Connected but not Armed
+            builder.setTitle("모터를 가동합니다.");
+            builder.setMessage("모터가 고속으로 회전합니다.");
+            builder.setPositiveButton("예", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
             VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
                 @Override
                 public void onError(int executionError) {
@@ -482,6 +503,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             });
         }
+    }
+
+    public void onClearButtonTap(View view) {
+        marker.setMap(null);
+        polylineOverlay.setMap(null);
+        Toast.makeText(getApplicationContext(),"All Clear", Toast.LENGTH_SHORT).show();
     }
 
     //UI Updating
@@ -517,20 +544,38 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    public void droneLocation() {
-        
-        Gps droneInitLocation = this.drone.getAttribute(AttributeType.GPS);
-        Gps droneMoveLocation = droneInitLocation;
+    protected void updateClearButton() {
+        Button clearButton = (Button) findViewById(R.id.btnClear);
 
-        if (droneInitLocation.equals(droneMoveLocation)) {
-            marker.setPosition(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
-            marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
-            marker.setWidth(70);
-            marker.setHeight(70);
-            marker.setMap(mNaverMap);
+        if (!this.drone.isConnected()) {
+            clearButton.setVisibility(View.INVISIBLE);
         } else {
-            marker.setMap(null);
+            clearButton.setVisibility(View.VISIBLE);
         }
+    }
+
+    public void updateDroneLocation() {
+        Gps droneInitLocation = this.drone.getAttribute(AttributeType.GPS);
+        Attitude yawPitch = this.drone.getAttribute(AttributeType.ATTITUDE);
+
+
+        marker.setPosition(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
+        marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
+        marker.setWidth(70);
+        marker.setHeight(70);
+        marker.setMap(mNaverMap);
+        marker.setAngle((float) yawPitch.getPitch());
+
+        Collections.addAll(poly, new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
+        polylineOverlay.setCoords(poly);
+
+        poly.set(0, new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
+        polylineOverlay.setCoords(poly);
+        polylineOverlay.setWidth(2);
+        polylineOverlay.setCapType(PolylineOverlay.LineCap.Round);
+        polylineOverlay.setJoinType(PolylineOverlay.LineJoin.Round);
+        polylineOverlay.setColor(Color.RED);
+        polylineOverlay.setMap(mNaverMap);
     }
 
     protected  void clearValue() {
@@ -544,6 +589,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         yawTextView.setText(String.format("0deg"));
         TextView gpsTextView = (TextView) findViewById(R.id.gpsValueTextView);
         gpsTextView.setText(String.format("0"));
+        marker.setMap(null);
     }
 
     protected void updateVoltage() {
@@ -567,18 +613,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void updateYaw() {
         TextView yawTextView = (TextView) findViewById(R.id.YAWValueTextView);
         Attitude droneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
-        yawTextView.setText(String.format("%3.1f",droneYaw.getYaw()) + "deg");
+        yawTextView.setText(String.format("%3.1f",droneYaw.getPitch()) + "deg");
     }
 
     protected void updateGps() {
         TextView gpsTextView = (TextView) findViewById(R.id.gpsValueTextView);
         Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
         gpsTextView.setText(String.format("%d",droneGps.getSatellitesCount()));
-    }
-
-    protected void updateLocation() {
-        Gps droneLocation = this.drone.getAttribute(AttributeType.GPS);
-        droneLocation.getPosition();
     }
 
     protected void updateVehicleModesForType(int droneType) {
