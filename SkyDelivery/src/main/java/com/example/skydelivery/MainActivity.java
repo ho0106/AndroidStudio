@@ -19,6 +19,8 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -33,11 +35,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.naver.maps.geometry.LatLng;
+import com.naver.maps.map.CameraAnimation;
 import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.NaverMapSdk;
 import com.naver.maps.map.OnMapReadyCallback;
+import com.naver.maps.map.UiSettings;
 import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 
@@ -84,7 +88,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     FloatingActionButton mFabMain, mFabBasic, mFabNavi, mFabSatellite, mFabHybrid, mFabTerrain;
     Boolean openFlag = false;
 
-
+    private RecyclerView recyclerView;
+    public RecyclerView.LayoutManager layoutManager;
+    private RecyclerView.Adapter adapter;
 
     private Drone drone;
     private int droneType = Type.TYPE_UNKNOWN;
@@ -275,11 +281,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull NaverMap naverMap) {
         this.mNaverMap = naverMap;
+        UiSettings uiSettings = naverMap.getUiSettings();
         naverMap.setMapType(NaverMap.MapType.Satellite);
         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_TRANSIT, true);
         naverMap.setContentPadding(0, 0, 0, 200);
         naverMap.setMinZoom(5.0);
         naverMap.setMaxZoom(18.0);
+        uiSettings.setZoomControlEnabled(false);
+        uiSettings.setScaleBarEnabled(false);
     }
 
     //Drone Start
@@ -325,6 +334,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_CONNECTED:
                 alertUser("Drone Connected");
                 updateConnectedButton(this.drone.isConnected());
+                updateMapMoveButton();
                 updateClearButton();
                 updateArmButton();
                 checkSoloState();
@@ -333,9 +343,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_DISCONNECTED:
                 alertUser("Drone Disconnected");
                 updateConnectedButton(this.drone.isConnected());
-                clearValue();
-                updateArmButton();
+                updateMapMoveButton();
                 updateClearButton();
+                updateArmButton();
+                clearValue();
                 break;
 
             case AttributeEvent.STATE_UPDATED:
@@ -511,6 +522,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Toast.makeText(getApplicationContext(),"All Clear", Toast.LENGTH_SHORT).show();
     }
 
+    public void onMapMoveButtonTap(View view) {
+        Button mapMoveButton = (Button) findViewById(R.id.btnMapMove);
+
+        if (mapMoveButton.getText().equals("맵잠금")) {
+            mapMoveButton.setText("맵이동");
+        } else if (mapMoveButton.getText().equals("맵이동")) {
+            mapMoveButton.setText("맵잠금");
+        }
+    }
+
     //UI Updating
 
     protected void updateConnectedButton(Boolean isConnected) {
@@ -554,9 +575,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    protected void updateMapMoveButton() {
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        Button mapMoveButton = (Button) findViewById(R.id.btnMapMove);
+
+        if (!this.drone.isConnected()) {
+            mapMoveButton.setVisibility(View.INVISIBLE);
+        } else {
+            mapMoveButton.setVisibility(View.VISIBLE);
+        }
+
+        if (vehicleState.isConnected()) {
+            mapMoveButton.setText("맵잠금");
+        }
+    }
+
     public void updateDroneLocation() {
         Gps droneInitLocation = this.drone.getAttribute(AttributeType.GPS);
-        Attitude yawPitch = this.drone.getAttribute(AttributeType.ATTITUDE);
+        Attitude droneHead = this.drone.getAttribute(AttributeType.ATTITUDE);
+        CameraUpdate cameraUpdate = CameraUpdate.scrollTo(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude())).animate(CameraAnimation.Linear);
 
 
         marker.setPosition(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
@@ -564,14 +601,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         marker.setWidth(70);
         marker.setHeight(70);
         marker.setMap(mNaverMap);
-        marker.setAngle((float) yawPitch.getPitch());
+        marker.setAngle((float) droneHead.getYaw());
+        mNaverMap.moveCamera(cameraUpdate);
 
         Collections.addAll(poly, new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
         polylineOverlay.setCoords(poly);
 
         poly.set(0, new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
         polylineOverlay.setCoords(poly);
-        polylineOverlay.setWidth(2);
+        polylineOverlay.setWidth(4);
         polylineOverlay.setCapType(PolylineOverlay.LineCap.Round);
         polylineOverlay.setJoinType(PolylineOverlay.LineJoin.Round);
         polylineOverlay.setColor(Color.RED);
@@ -590,6 +628,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         TextView gpsTextView = (TextView) findViewById(R.id.gpsValueTextView);
         gpsTextView.setText(String.format("0"));
         marker.setMap(null);
+        polylineOverlay.setMap(null);
     }
 
     protected void updateVoltage() {
@@ -613,7 +652,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void updateYaw() {
         TextView yawTextView = (TextView) findViewById(R.id.YAWValueTextView);
         Attitude droneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
-        yawTextView.setText(String.format("%3.1f",droneYaw.getPitch()) + "deg");
+        yawTextView.setText(String.format("%3.0f", droneYaw.getYaw()) + "deg");
     }
 
     protected void updateGps() {

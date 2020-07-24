@@ -6,6 +6,13 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/droneLog"
+        android:layout_marginTop="60dp"
+        android:layout_marginLeft="10dp"
+        android:layout_width="450dp"
+        android:layout_height="250dp" />
+
     <fragment
         android:id="@+id/naverMap"
         android:name="com.naver.maps.map.MapFragment"
@@ -16,35 +23,50 @@
         app:navermap_mapType="Basic"
         app:navermap_zoom="20" />
 
-    <Button
-        android:id="@+id/btnArmTakeOff"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|left"
-        android:layout_marginLeft="10dp"
-        android:layout_marginBottom="10dp"
-        android:text="ARM"
-        android:textSize="20dp"
-        android:background="@drawable/ic_button_style"
-        android:textColor="#ffffff"
-        android:backgroundTint="#FF7CB5DB"
-        android:onClick="onArmButtonTap"
-        android:visibility="invisible" />
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="15dp"
+        android:layout_marginBottom="15dp">
+        <Button
+            android:id="@+id/btnArmTakeOff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ic_button_style"
+            android:backgroundTint="#FF7CB5DB"
+            android:text="ARM"
+            android:textSize="20dp"
+            android:textColor="#ffffff"
+            android:onClick="onArmButtonTap"
+            android:visibility="invisible" />
 
-    <Button
-        android:id="@+id/btnClear"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
-        android:layout_marginLeft="10dp"
-        android:layout_marginBottom="10dp"
-        android:background="@drawable/ic_button_style"
-        android:backgroundTint="#FF7CB5DB"
-        android:onClick="onClearButtonTap"
-        android:text="Clear"
-        android:textColor="#ffffff"
-        android:textSize="20dp"
-        android:visibility="invisible" />
+        <Button
+            android:id="@+id/btnClear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/ic_button_style"
+            android:backgroundTint="#FF7CB5DB"
+            android:text="Clear"
+            android:textSize="20dp"
+            android:textColor="#ffffff"
+            android:onClick="onClearButtonTap"
+            android:visibility="invisible" />
+
+        <Button
+            android:id="@+id/btnMapMove"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/ic_button_style"
+            android:backgroundTint="#FF7CB5DB"
+            android:text="맵잠금"
+            android:textSize="20dp"
+            android:textColor="#ffffff"
+            android:onClick="onMapMoveButtonTap"
+            android:visibility="invisible" />
+    </LinearLayout>
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabBasic"
