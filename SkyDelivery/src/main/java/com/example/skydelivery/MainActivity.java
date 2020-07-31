@@ -282,7 +282,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(@NonNull NaverMap naverMap) {
         this.mNaverMap = naverMap;
         UiSettings uiSettings = naverMap.getUiSettings();
-        naverMap.setMapType(NaverMap.MapType.Satellite);
+        naverMap.setMapType(NaverMap.MapType.Basic);
         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_TRANSIT, true);
         naverMap.setContentPadding(0, 0, 0, 200);
         naverMap.setMinZoom(5.0);
@@ -455,7 +455,62 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void onArmButtonTap(View view) {
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        View dialogView = getLayoutInflater().inflate(R.layout.custom_dialog, null);
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setView(dialogView);
+
+        final AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+
+        if (vehicleState.isFlying()) {
+            onArmButtonFunction();
+        } else if (vehicleState.isArmed()) {
+            TextView title = dialogView.findViewById(R.id.title);
+            title.setText("지정한 이륙고도까지 기체가 상승합니다.");
+            TextView message = dialogView.findViewById(R.id.message);
+            message.setText("안전거리를 유지하세요");
+            Button btnPositive = dialogView.findViewById(R.id.btnPositive);
+            btnPositive.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    onArmButtonFunction();
+                    alertDialog.dismiss();
+                }
+            });
+            Button btnNegative = dialogView.findViewById(R.id.btnNegative);
+            btnNegative.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    alertDialog.dismiss();
+                }
+            });
+        } else if (!vehicleState.isConnected()) {
+            alertUser("Connect to a drone first");
+        } else {
+            TextView title = dialogView.findViewById(R.id.title);
+            title.setText("모터를 가동합니다.");
+            TextView message = dialogView.findViewById(R.id.message);
+            message.setText("모터가 고속으로 회전합니다.");
+            Button btnPositive = dialogView.findViewById(R.id.btnPositive);
+            btnPositive.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    onArmButtonFunction();
+                    alertDialog.dismiss();
+                }
+            });
+            Button btnNegative = dialogView.findViewById(R.id.btnNegative);
+            btnNegative.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    alertDialog.dismiss();
+                }
+            });
+        }
+    }
+
+    public void onArmButtonFunction() {
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
 
         if (vehicleState.isFlying()) {
             // Land
@@ -494,14 +549,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             alertUser("Connect to a drone first");
         } else {
             // Connected but not Armed
-            builder.setTitle("모터를 가동합니다.");
-            builder.setMessage("모터가 고속으로 회전합니다.");
-            builder.setPositiveButton("예", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-
-                }
-            });
             VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
                 @Override
                 public void onError(int executionError) {
@@ -524,12 +571,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void onMapMoveButtonTap(View view) {
         Button mapMoveButton = (Button) findViewById(R.id.btnMapMove);
-
-        if (mapMoveButton.getText().equals("맵잠금")) {
-            mapMoveButton.setText("맵이동");
-        } else if (mapMoveButton.getText().equals("맵이동")) {
-            mapMoveButton.setText("맵잠금");
-        }
     }
 
     //UI Updating
@@ -576,17 +617,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     protected void updateMapMoveButton() {
-        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         Button mapMoveButton = (Button) findViewById(R.id.btnMapMove);
 
         if (!this.drone.isConnected()) {
             mapMoveButton.setVisibility(View.INVISIBLE);
         } else {
             mapMoveButton.setVisibility(View.VISIBLE);
-        }
-
-        if (vehicleState.isConnected()) {
-            mapMoveButton.setText("맵잠금");
         }
     }
 

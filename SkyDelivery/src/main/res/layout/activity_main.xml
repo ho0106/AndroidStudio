@@ -61,7 +61,7 @@
             android:layout_marginLeft="10dp"
             android:background="@drawable/ic_button_style"
             android:backgroundTint="#FF7CB5DB"
-            android:text="맵잠금"
+            android:text="Map Fixed"
             android:textSize="20dp"
             android:textColor="#ffffff"
             android:onClick="onMapMoveButtonTap"
