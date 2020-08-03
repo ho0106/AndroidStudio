@@ -78,15 +78,17 @@
 
         <Button
             android:id="@+id/ABDist"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="50m\nAB거리" />
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:text="*미구현*\nAB거리"
+            android:textSize="12dp" />
 
         <Button
             android:id="@+id/flightWidth"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="5.5m\n비행폭"/>
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:text="*미구현*\n비행폭"
+            android:textSize="12dp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -94,29 +96,63 @@
             android:orientation="vertical">
 
             <Button
-                android:id="@+id/viewAltitude"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="5.5m\n이륙고도" />
+                android:id="@+id/btnTakeOffAltitude"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:text="0.0m\n이륙고도"
+                android:textSize="12dp"
+                android:onClick="onBtnTakeOffAltitudeTap" />
 
             <Button
-                android:id="@+id/upAltitude"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="+0.5" />
+                android:id="@+id/btnUpAltitude"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:text="+0.5"
+                android:visibility="gone" />
 
             <Button
-                android:id="@+id/downAltitude"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-0.5" />
+                android:id="@+id/btnDownAltitude"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:text="-0.5"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/ABMission"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="AB" />
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btnMission"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:text="*미구현*\n미션"
+                android:textSize="12dp"
+                android:onClick="onBtnMissionTap" />
+
+            <Button
+                android:id="@+id/btnABMission"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:text="AB"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnPolygonMission"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:text="다각형"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnMissionCancel"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:text="취소"
+                android:visibility="gone" />
+        </LinearLayout>
+
 
     </LinearLayout>
 

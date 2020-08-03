@@ -417,6 +417,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //UI Events
 
+    public void onBtnTakeOffAltitudeTap(View view) {
+        Button upAltitudeButton = (Button) findViewById(R.id.btnUpAltitude);
+        Button downAltitudeButton = (Button) findViewById(R.id.btnDownAltitude);
+
+        if (upAltitudeButton.getVisibility() == view.GONE) {
+            upAltitudeButton.setVisibility(View.VISIBLE);
+            downAltitudeButton.setVisibility(View.VISIBLE);
+        } else {
+            upAltitudeButton.setVisibility(View.GONE);
+            downAltitudeButton.setVisibility(View.GONE);
+        }
+    }
+
+    public void onBtnMissionTap(View view) {
+        Button ABMissionButton = (Button) findViewById(R.id.btnABMission);
+        Button polygonMissionButton = (Button) findViewById(R.id.btnPolygonMission);
+        Button missionCancelButton = (Button) findViewById(R.id.btnMissionCancel);
+
+        if (ABMissionButton.getVisibility() == view.GONE) {
+            ABMissionButton.setVisibility(View.VISIBLE);
+            polygonMissionButton.setVisibility(View.VISIBLE);
+            missionCancelButton.setVisibility(View.VISIBLE);
+        } else {
+            ABMissionButton.setVisibility(View.GONE);
+            polygonMissionButton.setVisibility(View.GONE);
+            missionCancelButton.setVisibility(View.GONE);
+        }
+    }
+
     public void onBtnConnectTap(View view) {
         if (this.drone.isConnected()) {
             this.drone.disconnect();
@@ -528,7 +557,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         } else if (vehicleState.isArmed()) {
             // Take off
-            ControlApi.getApi(this.drone).takeoff(10, new AbstractCommandListener() {
+            ControlApi.getApi(this.drone).takeoff(5.0, new AbstractCommandListener() {
 
                 @Override
                 public void onSuccess() {
@@ -575,6 +604,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     //UI Updating
+
+    protected void updateTakeOffAltitudeButton() {
+        Button takeOffAltitudeButton = (Button) findViewById(R.id.btnTakeOffAltitude);
+
+        if (!this.drone.isConnected()) {
+            takeOffAltitudeButton.setVisibility(View.INVISIBLE);
+        } else {
+            takeOffAltitudeButton.setVisibility(View.VISIBLE);
+        }
+    }
+
+    protected void updateMissionButton() {
+        Button missionButton = (Button) findViewById(R.id.btnMission);
+
+        if (!this.drone.isConnected()) {
+            missionButton.setVisibility(View.INVISIBLE);
+        } else {
+            missionButton.setVisibility(View.VISIBLE);
+        }
+    }
+
 
     protected void updateConnectedButton(Boolean isConnected) {
         Button connectButton = (Button) findViewById(R.id.btnConnect);
@@ -635,7 +685,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         marker.setPosition(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
         marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
-        marker.setWidth(70);
+        marker.setWidth(100);
         marker.setHeight(400);
         marker.setMap(mNaverMap);
         marker.setAngle((float) droneHead.getYaw());
