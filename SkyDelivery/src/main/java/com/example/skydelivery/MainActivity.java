@@ -460,7 +460,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.setView(dialogView);
 
         final AlertDialog alertDialog = builder.create();
-        alertDialog.show();
 
         if (vehicleState.isFlying()) {
             onArmButtonFunction();
@@ -484,6 +483,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     alertDialog.dismiss();
                 }
             });
+            alertDialog.show();
         } else if (!vehicleState.isConnected()) {
             alertUser("Connect to a drone first");
         } else {
@@ -506,6 +506,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     alertDialog.dismiss();
                 }
             });
+            alertDialog.show();
         }
     }
 
@@ -635,7 +636,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         marker.setPosition(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
         marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
         marker.setWidth(70);
-        marker.setHeight(70);
+        marker.setHeight(400);
         marker.setMap(mNaverMap);
         marker.setAngle((float) droneHead.getYaw());
         mNaverMap.moveCamera(cameraUpdate);

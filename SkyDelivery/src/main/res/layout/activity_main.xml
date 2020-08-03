@@ -68,6 +68,58 @@
             android:visibility="invisible" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        android:layout_marginTop="60dp"
+        android:layout_marginRight="15sp"
+        android:orientation="horizontal" >
+
+        <Button
+            android:id="@+id/ABDist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="50m\nAB거리" />
+
+        <Button
+            android:id="@+id/flightWidth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="5.5m\n비행폭"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/viewAltitude"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="5.5m\n이륙고도" />
+
+            <Button
+                android:id="@+id/upAltitude"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+0.5" />
+
+            <Button
+                android:id="@+id/downAltitude"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-0.5" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/ABMission"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AB" />
+
+    </LinearLayout>
+
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabBasic"
         android:layout_width="60dp"
