@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.PointF;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -76,6 +77,7 @@ import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -96,6 +98,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int droneType = Type.TYPE_UNKNOWN;
     private ControlTower controlTower;
     private final Handler handler = new Handler();
+    private double mDroneAltitude = 5.0;
+
     private Marker marker = new Marker();
     private List<LatLng> poly = new ArrayList<>();
     private PolylineOverlay polylineOverlay = new PolylineOverlay();
@@ -334,7 +338,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_CONNECTED:
                 alertUser("Drone Connected");
                 updateConnectedButton(this.drone.isConnected());
+                updateTakeOffAltitudeButton();
                 updateMapMoveButton();
+                updateMissionButton();
                 updateClearButton();
                 updateArmButton();
                 checkSoloState();
@@ -343,7 +349,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_DISCONNECTED:
                 alertUser("Drone Disconnected");
                 updateConnectedButton(this.drone.isConnected());
+                updateTakeOffAltitudeButton();
                 updateMapMoveButton();
+                updateMissionButton();
                 updateClearButton();
                 updateArmButton();
                 clearValue();
@@ -427,6 +435,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             upAltitudeButton.setVisibility(View.GONE);
             downAltitudeButton.setVisibility(View.GONE);
+        }
+    }
+
+    public void onBtnUpAltitudeTap(View view) {
+        TextView downAltitudeValue = (TextView) findViewById(R.id.btnTakeOffAltitude);
+
+        if (mDroneAltitude < 9.51) {
+            mDroneAltitude += 0.5;
+            downAltitudeValue.setText(String.format("%f\n이륙고도", mDroneAltitude));
+        } else if (mDroneAltitude >= 10.0) {
+            Toast.makeText(getApplicationContext(),"고도 10m이상 설정 불가", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void onBtnDownAltitudeTap(View view) {
+        TextView upAltitudeValue = (TextView) findViewById(R.id.btnTakeOffAltitude);
+
+        if (mDroneAltitude >= 3.5) {
+            mDroneAltitude -= 0.5;
+            upAltitudeValue.setText(String.format("%f\n이륙고도", mDroneAltitude));
+        } else if (mDroneAltitude <= 3.49) {
+            Toast.makeText(getApplicationContext(),"고도 3m이하 설정 불가", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -557,7 +587,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         } else if (vehicleState.isArmed()) {
             // Take off
-            ControlApi.getApi(this.drone).takeoff(5.0, new AbstractCommandListener() {
+            ControlApi.getApi(this.drone).takeoff(mDroneAltitude, new AbstractCommandListener() {
 
                 @Override
                 public void onSuccess() {
@@ -607,9 +637,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     protected void updateTakeOffAltitudeButton() {
         Button takeOffAltitudeButton = (Button) findViewById(R.id.btnTakeOffAltitude);
+        TextView altitudeTextView = (TextView) findViewById(R.id.btnTakeOffAltitude);
 
         if (!this.drone.isConnected()) {
             takeOffAltitudeButton.setVisibility(View.INVISIBLE);
+            altitudeTextView.setText(String.format("%1.1f\n이륙고도", mDroneAltitude));
         } else {
             takeOffAltitudeButton.setVisibility(View.VISIBLE);
         }
@@ -685,15 +717,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         marker.setPosition(new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
         marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
+        marker.setFlat(true);
         marker.setWidth(100);
         marker.setHeight(400);
         marker.setMap(mNaverMap);
+        marker.setAnchor(new PointF(0.5f,0.85f));
         marker.setAngle((float) droneHead.getYaw());
         mNaverMap.moveCamera(cameraUpdate);
 
-        Collections.addAll(poly, new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
+        poly.add(0, new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
         polylineOverlay.setCoords(poly);
-
         poly.set(0, new LatLng(droneInitLocation.getPosition().getLatitude(), droneInitLocation.getPosition().getLongitude()));
         polylineOverlay.setCoords(poly);
         polylineOverlay.setWidth(4);

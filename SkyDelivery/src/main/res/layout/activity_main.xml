@@ -81,14 +81,16 @@
             android:layout_width="70dp"
             android:layout_height="70dp"
             android:text="*미구현*\nAB거리"
-            android:textSize="12dp" />
+            android:textSize="12dp"
+            android:visibility="invisible" />
 
         <Button
             android:id="@+id/flightWidth"
             android:layout_width="70dp"
             android:layout_height="70dp"
             android:text="*미구현*\n비행폭"
-            android:textSize="12dp" />
+            android:textSize="12dp"
+            android:visibility="invisible" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -99,8 +101,9 @@
                 android:id="@+id/btnTakeOffAltitude"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
-                android:text="0.0m\n이륙고도"
+                android:text="5.0m\n이륙고도"
                 android:textSize="12dp"
+                android:visibility="invisible"
                 android:onClick="onBtnTakeOffAltitudeTap" />
 
             <Button
@@ -108,6 +111,7 @@
                 android:layout_width="70dp"
                 android:layout_height="70dp"
                 android:text="+0.5"
+                android:onClick="onBtnUpAltitudeTap"
                 android:visibility="gone" />
 
             <Button
@@ -115,6 +119,7 @@
                 android:layout_width="70dp"
                 android:layout_height="70dp"
                 android:text="-0.5"
+                android:onClick="onBtnDownAltitudeTap"
                 android:visibility="gone" />
         </LinearLayout>
 
@@ -129,6 +134,7 @@
                 android:layout_height="70dp"
                 android:text="*미구현*\n미션"
                 android:textSize="12dp"
+                android:visibility="invisible"
                 android:onClick="onBtnMissionTap" />
 
             <Button
