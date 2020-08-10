@@ -4,14 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/mainLayout"
     tools:context=".MainActivity">
-
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/droneLog"
-        android:layout_marginTop="60dp"
-        android:layout_marginLeft="10dp"
-        android:layout_width="450dp"
-        android:layout_height="250dp" />
 
     <fragment
         android:id="@+id/naverMap"
@@ -22,6 +16,13 @@
         app:navermap_longitude="126.684297"
         app:navermap_mapType="Basic"
         app:navermap_zoom="20" />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/droneLog"
+        android:layout_marginTop="60dp"
+        android:layout_marginLeft="10dp"
+        android:layout_width="450dp"
+        android:layout_height="250dp" />
 
     <LinearLayout
         android:layout_width="wrap_content"
