@@ -403,6 +403,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             case AttributeEvent.GPS_POSITION:
                 updateDroneLocation();
+                updateGuideFlight();
                 break;
 
             default:
@@ -637,20 +638,44 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //UI Updating
 
     public void updateGuideFlight() {
-        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+
 
         mNaverMap.setOnMapLongClickListener(new NaverMap.OnMapLongClickListener() {
             @Override
             public void onMapLongClick(@NonNull PointF point, @NonNull LatLng coord) {
-                Toast.makeText(MainActivity.this, coord.latitude + ", " + coord.longitude,
-                        Toast.LENGTH_SHORT).show();
+                State vehicleState = drone.getAttribute(AttributeType.STATE);
+                final LatLong target = new LatLong(coord.latitude, coord.longitude);
 
-                //mGuideMode.mGuidedPoint = new LatLong(coord.latitude, coord.longitude);
+                if (!vehicleState.isConnected()) {
+                    alertUser("Connect to a drone first");
+                } else if (!vehicleState.isArmed()) {
+                    alertUser("arm vehicle first");
+                } else if (vehicleState.isFlying()) {
+                    if (vehicleState.getVehicleMode() == vehicleState.getVehicleMode().COPTER_GUIDED) {
+                        ControlApi.getApi(drone).goTo(target, true, new AbstractCommandListener() {
+                            @Override
+                            public void onSuccess() {
+                                alertUser("현재고도를 유지하며 이동합니다.");
+                            }
 
-                mGuideMode.DialogSimple(drone, new LatLong(coord.latitude, coord.longitude));
+                            @Override
+                            public void onError(int executionError) {
+                                alertUser("이동할 수 없습니다.");
+                            }
 
-                marker.setPosition(coord);
-                marker.setMap(mNaverMap);
+                            @Override
+                            public void onTimeout() {
+                                alertUser("시간초과.");
+                            }
+                        });
+                        mGuideMode.mMarkerGuide.setPosition(coord);
+                        mGuideMode.mMarkerGuide.setMap(mNaverMap);
+                    } else if (vehicleState.getVehicleMode() != vehicleState.getVehicleMode().COPTER_GUIDED) {
+                        mGuideMode.mMarkerGuide.setPosition(coord);
+                        mGuideMode.mMarkerGuide.setMap(mNaverMap);
+                        mGuideMode.DialogSimple(drone, target);
+                    }
+                }
             }
         });
     }

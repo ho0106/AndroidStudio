@@ -1,6 +1,7 @@
 package com.example.skydelivery;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
@@ -10,6 +11,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.naver.maps.geometry.LatLng;
+import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
 import com.o3dr.android.client.Drone;
@@ -32,38 +34,74 @@ public class GuideMode extends AppCompatActivity {
     }
 
     public void DialogSimple(final Drone drone, final LatLong point) {
+        AlertDialog.Builder alt_bld = new AlertDialog.Builder(mMainActivity);
+
+        alt_bld.setMessage("확인하시면 가이드모드로 전환후 기체가 이동합니다.").setCancelable(false).setPositiveButton("확인", new DialogInterface.OnClickListener() {
+        public void onClick(DialogInterface dialog, int id) {
+            // Action for 'Yes' Button
+            VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED, new AbstractCommandListener() {
+                        @Override
+                        public void onSuccess() {
+                            ControlApi.getApi(drone).goTo(point, true, null);
+                            mMainActivity.alertUser("Success");
+                        }
+                        @Override
+                        public void onError(int i) {
+                            mMainActivity.alertUser("Error");
+                        }
+                        @Override
+                        public void onTimeout() {
+                            mMainActivity.alertUser("Time out");
+                        }
+                    });
+        }
+        // Action for 'No' Button
+        }).setNegativeButton("취소", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+            }
+        });
+
+        AlertDialog alert = alt_bld.create();
+        alert.show();
+    }
+    public static boolean CheckGoal(final Drone drone, LatLng recentLatLng) {
+        GuidedState guidedState = drone.getAttribute(AttributeType.GUIDED_STATE);
+        LatLng target = new LatLng(guidedState.getCoordinate().getLatitude(),
+                guidedState.getCoordinate().getLongitude());
+        return target.distanceTo(recentLatLng) <= 1;
+    }
+
+    // Custom Dialog
+    /*public void DialogDimpleCustom(final Drone drone, final LatLong point) {
         View dialogView = getLayoutInflater().inflate(R.layout.custom_dialog, null);
         AlertDialog.Builder builder = new AlertDialog.Builder(mMainActivity);
-        builder.setView(R.id.dialogLayout);
+        builder.setView(dialogView);
 
         final AlertDialog alertDialog = builder.create();
 
         TextView title = dialogView.findViewById(R.id.title);
-        title.setText("현재고도를 유지하며");
+        title.setText("현재 고도를 유지하며");
         TextView message = dialogView.findViewById(R.id.message);
         message.setText("목표지점까지 기체가 이동합니다.");
         Button btnPositive = dialogView.findViewById(R.id.btnPositive);
         btnPositive.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED,
-                        new AbstractCommandListener() {
-                            @Override
-                            public void onSuccess() {
-                                ControlApi.getApi(drone).goTo(point, true,null);
-                            }
-
-                            @Override
-                            public void onError(int executionError) {
-
-                            }
-
-                            @Override
-                            public void onTimeout() {
-
-                            }
-                        });
-
+                VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED, new AbstractCommandListener() {
+                    @Override
+                    public void onSuccess() {
+                        ControlApi.getApi(drone).goTo(point, true, null);
+                    }
+                    @Override
+                    public void onError(int i) {
+                        mMainActivity.alertUser("Error");
+                    }
+                    @Override
+                    public void onTimeout() {
+                        mMainActivity.alertUser("Time out");
+                    }
+                });
                 alertDialog.dismiss();
             }
         });
@@ -75,12 +113,6 @@ public class GuideMode extends AppCompatActivity {
             }
         });
         alertDialog.show();
-    }
-
-    public static boolean CheckGoal(final Drone drone, LatLng recentLatLng) {
-        GuidedState guidedState = drone.getAttribute(AttributeType.GUIDED_STATE);
-        LatLng target = new LatLng(guidedState.getCoordinate().getLatitude(),
-                guidedState.getCoordinate().getLongitude());
-        return target.distanceTo(recentLatLng) <= 1;
-    }
+    }*/
 }
+
