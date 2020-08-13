@@ -13,9 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:navermap_latitude="35.944303"
-        app:navermap_longitude="126.684297"
-        app:navermap_mapType="Basic"
-        app:navermap_zoom="20" />
+        app:navermap_longitude="126.684297" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/droneLog"
@@ -102,7 +100,7 @@
                 android:id="@+id/btnTakeOffAltitude"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
-                android:text="5.0m\n이륙고도"
+                android:text="이륙고도설정"
                 android:textSize="12dp"
                 android:visibility="invisible"
                 android:onClick="onBtnTakeOffAltitudeTap" />
@@ -111,16 +109,16 @@
                 android:id="@+id/btnUpAltitude"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
-                android:text="+0.5"
-                android:onClick="onBtnUpAltitudeTap"
+                android:text="+ 0.5"
+                android:onClick="onBtnUpDownAltitudeTap"
                 android:visibility="gone" />
 
             <Button
                 android:id="@+id/btnDownAltitude"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
-                android:text="-0.5"
-                android:onClick="onBtnDownAltitudeTap"
+                android:text="- 0.5"
+                android:onClick="onBtnUpDownAltitudeTap"
                 android:visibility="gone" />
         </LinearLayout>
 
