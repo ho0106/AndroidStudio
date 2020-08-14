@@ -11,6 +11,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -63,7 +64,10 @@ import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -80,9 +84,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Boolean openFlag = false;
 
     // RecyclerView
-    private RecyclerView recyclerView;
-    public RecyclerView.LayoutManager layoutManager;
-    private RecyclerView.Adapter adapter;
+    private RecyclerView mRecyclerView;
+    private DroneLog mDroneLog;
     ArrayList mData = new ArrayList();
 
     // Drone
@@ -93,6 +96,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final Handler handler = new Handler();
     private double mDroneAltitude = 5.0;
     private GuideMode mGuideMode;
+    private Gps mGps;
+    private Attitude mDroneYaw;
+
+    boolean clear = true;
 
     private static final String TAG = "";
     private static final int DEFAULT_UDP_PORT = 14550;
@@ -108,11 +115,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        DroneLog adapter = new DroneLog(mData);
-        mData.add(0, "Drone connect to first");
-        recyclerView = findViewById(R.id.droneLog);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(adapter);
+        mRecyclerView = (RecyclerView) findViewById(R.id.droneLog);
+        LinearLayoutManager mLinerLayoutManager = new LinearLayoutManager(this);
+
+        mLinerLayoutManager.setReverseLayout(true);
+        mLinerLayoutManager.setStackFromEnd(true);
+        mRecyclerView.setLayoutManager(mLinerLayoutManager);
+
+
+        mData = new ArrayList<String>(10);
+
+        mDroneLog = new DroneLog(mData);
+        mRecyclerView.setAdapter(mDroneLog);
+
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(mRecyclerView.getContext(),mLinerLayoutManager.getOrientation());
+        mRecyclerView.addItemDecoration(dividerItemDecoration);
+
+
+        mDroneLog.notifyDataSetChanged();
 
         int uiOptions = getWindow().getDecorView().getSystemUiVisibility();
         int newUiOptions = uiOptions;
@@ -179,10 +199,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         cb1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (cb1.isChecked() == true)
+                if (cb1.isChecked() == true) {
                     mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
-                else if (cb1.isChecked() == false)
+                    mData.add("지적편집도 활성화");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                } else if (cb1.isChecked() == false) {
                     mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
+                    mData.add("지적편집도 비활성화");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                }
             }
         });
 
@@ -212,7 +239,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case R.id.fabBasic:
                 anim();
-                Toast.makeText(this, "Change MapType 'Basic'", Toast.LENGTH_SHORT).show();
+                mData.add("지도 타입 변경 : 기본");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
                 mNaverMap.setMapType(NaverMap.MapType.Basic);
                 mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_BUILDING, true);
                 mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_TRANSIT, true);
@@ -221,24 +250,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case R.id.fabNavi:
                 anim();
-                Toast.makeText(this, "Change MapType 'Navi'", Toast.LENGTH_SHORT).show();
+                mData.add("지도 타입 변경 : 네비");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
                 mNaverMap.setMapType(NaverMap.MapType.Navi);
                 mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_BUILDING, true);
                 mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_TRAFFIC, true);
                 break;
             case R.id.fabSatellite:
                 anim();
-                Toast.makeText(this, "Change MapType 'Satellite'", Toast.LENGTH_SHORT).show();
+                mData.add("지도 타입 변경 : 위성");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
                 mNaverMap.setMapType(NaverMap.MapType.Satellite);
                 break;
             case R.id.fabHybrid:
                 anim();
-                Toast.makeText(this, "Change MapType 'Hybrid'", Toast.LENGTH_SHORT).show();
+                mData.add("지도 타입 변경 : 하이브리드");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
                 mNaverMap.setMapType(NaverMap.MapType.Hybrid);
                 break;
             case R.id.fabTerrain:
                 anim();
-                Toast.makeText(this, "Change MapType 'Terrain'", Toast.LENGTH_SHORT).show();
+                mData.add("지도 타입 변경 : 지적도");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
                 mNaverMap.setMapType(NaverMap.MapType.Terrain);
                 break;
         }
@@ -279,13 +316,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @UiThread
     @Override
     public void onMapReady(@NonNull final NaverMap naverMap) {
+        mData.add("Map 불러오기 완료");
+        mRecyclerView.smoothScrollToPosition(mData.size()-1);
+        mDroneLog.notifyDataSetChanged();
         this.mNaverMap = naverMap;
         UiSettings uiSettings = naverMap.getUiSettings();
-        naverMap.setMapType(NaverMap.MapType.Basic);
+        naverMap.setMapType(NaverMap.MapType.Satellite);
         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_TRANSIT, true);
         naverMap.setContentPadding(0, 0, 0, 200);
         uiSettings.setZoomControlEnabled(false);
         uiSettings.setScaleBarEnabled(true);
+
         mGuideMode = new GuideMode(this);
         mNaverMap.setOnMapLongClickListener(new NaverMap.OnMapLongClickListener() {
             @Override
@@ -329,13 +370,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         mGuideMode.DialogSimple(drone, target);
                     }
                 } else {
-                    alertUser("비행중이 아닙니다.");
+                    mData.add("비행중이 아닙니다.");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
             } else {
-                alertUser("시동을 걸어 주세요.");
+                mData.add("시동을 걸어주세요.");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
             }
         } else {
-            alertUser("드론을 연결하세요.");
+            mData.add("드론을 연결하세요.");
+            mRecyclerView.smoothScrollToPosition(mData.size()-1);
+            mDroneLog.notifyDataSetChanged();
         }
     }
 
@@ -364,14 +411,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onTowerConnected() {
-        alertUser("DroneKit-Android Connected");
+        mData.add("DroneKit-Android Connected");
+        mRecyclerView.smoothScrollToPosition(mData.size()-1);
+        mDroneLog.notifyDataSetChanged();
         this.controlTower.registerDrone(this.drone, this.handler);
         this.drone.registerDroneListener(this);
     }
 
     @Override
     public void onTowerDisconnected() {
-        alertUser("DroneKit-Android Interrupted");
+        mData.add("DroneKit-Android Interrupted");
+        mRecyclerView.smoothScrollToPosition(mData.size()-1);
+        mDroneLog.notifyDataSetChanged();
     }
 
     //Drone Listener //
@@ -380,22 +431,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onDroneEvent(String event, Bundle extras) {
         switch (event) {
             case AttributeEvent.STATE_CONNECTED:
-                mData.add("Drone Connected");
-                alertUser("Drone Connected");
+                mData.add("Drone connected");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
                 updateUI(this.drone.isConnected());
                 checkSoloState();
                 break;
 
             case AttributeEvent.STATE_DISCONNECTED:
                 mData.add("Drone Disconnected");
-                alertUser("Drone Disconnected");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
                 updateUI(this.drone.isConnected());
                 clearValue();
+                clear = true;
                 break;
 
             case AttributeEvent.STATE_UPDATED:
             case AttributeEvent.STATE_ARMING:
-                mData.add("Arm");
                 updateUI(this.drone.isConnected());
                 break;
 
@@ -482,16 +535,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (mDroneAltitude < 9.51) {
                     mDroneAltitude += 0.5;
                     AltitudeValue.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
+                    mData.add(String.format("이륙 고도 변경 : %2.1fm", mDroneAltitude));
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 } else if (mDroneAltitude >= 10.0) {
-                    Toast.makeText(getApplicationContext(), "고도 10m이상 설정 불가", Toast.LENGTH_SHORT).show();
+                    mData.add("고도 10m이상 설정 불가");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
                 break;
             case R.id.btnDownAltitude:
                 if (mDroneAltitude >= 3.5) {
                     mDroneAltitude -= 0.5;
                     AltitudeValue.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
+                    mData.add(String.format("이륙 고도 변경 : %2.1fm", mDroneAltitude));
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 } else if (mDroneAltitude <= 3.49) {
-                    Toast.makeText(getApplicationContext(), "고도 3m이하 설정 불가", Toast.LENGTH_SHORT).show();
+                    mData.add("고도 3m이하 설정 불가");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
                 break;
         }
@@ -529,22 +592,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onFlightModeSelected(View view) {
-        VehicleMode vehicleMode = (VehicleMode) this.modeSelector.getSelectedItem();
+        final VehicleMode vehicleMode = (VehicleMode) this.modeSelector.getSelectedItem();
 
         VehicleApi.getApi(this.drone).setVehicleMode(vehicleMode, new AbstractCommandListener() {
             @Override
             public void onSuccess() {
-                alertUser("Vehicle mode change successful.");
+                mData.add(String.format("비행 모드 변경 : %s", vehicleMode.getLabel()));
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
             }
 
             @Override
             public void onError(int executionError) {
-                alertUser("Vehicle mode change failed: " + executionError);
+                mData.add("Vehicle mode change failed : " + executionError);
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
             }
 
             @Override
             public void onTimeout() {
-                alertUser("Vehicle mode change timed out.");
+                mData.add("Vehicle mode change timed out.");
+                mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                mDroneLog.notifyDataSetChanged();
             }
         });
     }
@@ -568,7 +637,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             btnPositive.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    mData.add(String.format("현재 이륙 고도 %2.1fm", mDroneAltitude));
                     onArmButtonFunction(mDroneAltitude);
                     alertDialog.dismiss();
                 }
@@ -616,12 +684,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
                 @Override
                 public void onError(int executionError) {
-                    alertUser("Unable to land the vehicle.");
+                    mData.add("착륙이 불가능합니다.");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
 
                 @Override
                 public void onTimeout() {
-                    alertUser("Unable to land the vehicle.");
+                    mData.add("시간초과. (Land)");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
             });
         } else if (vehicleState.isArmed()) {
@@ -630,73 +702,106 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 @Override
                 public void onSuccess() {
-                    alertUser("Taking off...");
+                    mData.add(String.format("이륙합니다. 설정된 이륙고도 : %2.1fm", mDroneAltitude));
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
 
                 @Override
                 public void onError(int i) {
-                    alertUser("Unable to take off.");
+                    mData.add("이륙이 불가능합니다.");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
 
                 @Override
                 public void onTimeout() {
-                    alertUser("Unable to take off.");
+                    mData.add("시간초과. (Take off)");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
             });
         } else if (!vehicleState.isConnected()) {
             // Connect
-            alertUser("Connect to a drone first");
+            mData.add("드론을 연결해주세요.");
+            mRecyclerView.smoothScrollToPosition(mData.size()-1);
+            mDroneLog.notifyDataSetChanged();
         } else {
             // Connected but not Armed
-            VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
+            VehicleApi.getApi(this.drone).arm(true, false, new AbstractCommandListener() {
+
+                @Override
+                public void onSuccess() {
+                    mData.add("모터 시동.");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                }
                 @Override
                 public void onError(int executionError) {
-                    alertUser("Unable to arm vehicle.");
+                    mData.add("시동을 걸 수 없습니다.");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
 
                 @Override
                 public void onTimeout() {
-                    alertUser("Arming operation timed out.");
+                    mData.add("시간초과. (arm)");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
                 }
             });
         }
     }
 
     public void onClearButtonTap(View view) {
+        mData.add("All Clear");
+        mRecyclerView.smoothScrollToPosition(mData.size()-1);
+        mDroneLog.notifyDataSetChanged();
 
+        marker.setMap(null);
+        poly.removeAll(poly);
+        polylineOverlay.setMap(null);
+
+        clear = false;
     }
 
     public void onMapMoveButtonTap(View view) {
         Button mapMoveButton = (Button) findViewById(R.id.btnMapMove);
+        TextView mapMoveValue = (TextView) findViewById(R.id.btnMapMove);
     }
 
     // UI Updating //
 
     public void updateDroneLocation() {
-        Gps coord = this.drone.getAttribute(AttributeType.GPS);
-        LatLng droneLocation = new LatLng(coord.getPosition().getLatitude(), coord.getPosition().getLongitude());
-        Attitude droneHead = this.drone.getAttribute(AttributeType.ATTITUDE);
-        CameraUpdate cameraUpdate = CameraUpdate.scrollTo(new LatLng(coord.getPosition().getLatitude(), coord.getPosition().getLongitude())).animate(CameraAnimation.Linear);
+        mGps = this.drone.getAttribute(AttributeType.GPS);
+        mDroneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
 
-        marker.setPosition(droneLocation);
-        marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
-        marker.setFlat(true);
-        marker.setWidth(100);
-        marker.setHeight(400);
-        marker.setMap(mNaverMap);
-        marker.setAnchor(new PointF(0.5f, 0.85f));
-        marker.setAngle((float) droneHead.getYaw());
-        mNaverMap.moveCamera(cameraUpdate);
+        LatLng droneLocation = new LatLng(mGps.getPosition().getLatitude(), mGps.getPosition().getLongitude());
+        CameraUpdate cameraUpdate = CameraUpdate.scrollTo(droneLocation).animate(CameraAnimation.Linear);
 
-        poly.add(0, droneLocation);
-        polylineOverlay.setCoords(poly);
-        poly.set(0, droneLocation);
-        polylineOverlay.setCoords(poly);
-        polylineOverlay.setWidth(4);
-        polylineOverlay.setCapType(PolylineOverlay.LineCap.Round);
-        polylineOverlay.setJoinType(PolylineOverlay.LineJoin.Round);
-        polylineOverlay.setColor(Color.RED);
-        polylineOverlay.setMap(mNaverMap);
+        if (clear == true) {
+            marker.setPosition(droneLocation);
+            marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
+            marker.setFlat(true);
+            marker.setWidth(100);
+            marker.setHeight(400);
+            marker.setMap(mNaverMap);
+            marker.setAnchor(new PointF(0.5f, 0.85f));
+            marker.setAngle((float) mDroneYaw.getYaw());
+            mNaverMap.moveCamera(cameraUpdate);
+
+            poly.add(0, droneLocation);
+            polylineOverlay.setCoords(poly);
+            poly.set(0, droneLocation);
+            polylineOverlay.setCoords(poly);
+            polylineOverlay.setWidth(4);
+            polylineOverlay.setCapType(PolylineOverlay.LineCap.Round);
+            polylineOverlay.setJoinType(PolylineOverlay.LineJoin.Round);
+            polylineOverlay.setColor(Color.RED);
+            polylineOverlay.setMap(mNaverMap);
+        } else {
+
+        }
     }
 
     protected void updateUI(Boolean isConnected) {
@@ -780,8 +885,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     protected void updateYaw() { // Yaw value
         TextView yawTextView = (TextView) findViewById(R.id.YAWValueTextView);
-        Attitude droneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
-        yawTextView.setText(String.format("%3.0f", droneYaw.getYaw()) + "deg");
+        mDroneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
+        yawTextView.setText(String.format("%3.0f", mDroneYaw.getYaw()) + "deg");
     }
 
     protected void updateSatellitesCount() { // Satellite Count
