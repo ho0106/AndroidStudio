@@ -47,6 +47,7 @@ import com.o3dr.android.client.apis.ControlApi;
 import com.o3dr.android.client.apis.VehicleApi;
 import com.o3dr.services.android.lib.coordinate.LatLong;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
+import com.o3dr.services.android.lib.drone.attribute.AttributeEventExtra;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.companion.solo.SoloAttributes;
 import com.o3dr.services.android.lib.drone.companion.solo.SoloState;
@@ -69,6 +70,8 @@ import org.w3c.dom.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import static com.naver.maps.map.CameraUpdate.toCameraPosition;
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, View.OnClickListener, DroneListener, TowerListener {
@@ -99,7 +102,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Gps mGps;
     private Attitude mDroneYaw;
 
-    boolean clear = true;
+    boolean mClearValue = true;
+    boolean mMapLock = true;
 
     private static final String TAG = "";
     private static final int DEFAULT_UDP_PORT = 14550;
@@ -386,6 +390,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    private void GuideCheck() {
+        mGps = this.drone.getAttribute(AttributeType.GPS);
+        LatLng droneLocation = new LatLng(mGps.getPosition().getLatitude(), mGps.getPosition().getLongitude());
+        if(mGuideMode.CheckGoal(this.drone, droneLocation))
+        {
+            mGuideMode.mMarkerGuide.setMap(null);
+            VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER, new AbstractCommandListener() {
+                @Override
+                public void onSuccess() {
+                    mData.add("목표지점에 도착.");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                }
+
+                @Override
+                public void onError(int executionError) {
+
+                }
+
+                @Override
+                public void onTimeout() {
+
+                }
+            });
+        }
+    }
+
+
     // Drone Start //
 
     @Override
@@ -429,6 +461,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onDroneEvent(String event, Bundle extras) {
+        State droneState = (State) drone.getAttribute(AttributeType.STATE);
         switch (event) {
             case AttributeEvent.STATE_CONNECTED:
                 mData.add("Drone connected");
@@ -444,7 +477,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mDroneLog.notifyDataSetChanged();
                 updateUI(this.drone.isConnected());
                 clearValue();
-                clear = true;
+                mClearValue = true;
                 break;
 
             case AttributeEvent.STATE_UPDATED:
@@ -490,6 +523,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             case AttributeEvent.GPS_POSITION:
                 updateDroneLocation();
+                break;
+
+            case AttributeEvent.GUIDED_POINT_UPDATED:
+                GuideCheck();
+                break;
+
+            case AttributeEvent.AUTOPILOT_MESSAGE:
+
+            case AttributeEvent.AUTOPILOT_ERROR:
+                extras.putString(AttributeEventExtra.EXTRA_AUTOPILOT_ERROR_ID, droneState.getAutopilotErrorId());
                 break;
 
             default:
@@ -754,20 +797,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onClearButtonTap(View view) {
-        mData.add("All Clear");
-        mRecyclerView.smoothScrollToPosition(mData.size()-1);
-        mDroneLog.notifyDataSetChanged();
+        if (this.drone.isConnected()) {
+            mData.add("모든 데이터 삭제.");
+            mRecyclerView.smoothScrollToPosition(mData.size()-1);
+            mDroneLog.notifyDataSetChanged();
 
-        marker.setMap(null);
-        poly.removeAll(poly);
-        polylineOverlay.setMap(null);
+            marker.setMap(null);
+            poly.removeAll(poly);
+            polylineOverlay.setMap(null);
+            mGuideMode.mMarkerGuide.setMap(null);
 
-        clear = false;
+            mClearValue = false;
+        } else {
+            mData.add("먼저 드론을 연결해주세요.");
+            mRecyclerView.smoothScrollToPosition(mData.size()-1);
+            mDroneLog.notifyDataSetChanged();
+        }
     }
 
     public void onMapMoveButtonTap(View view) {
-        Button mapMoveButton = (Button) findViewById(R.id.btnMapMove);
         TextView mapMoveValue = (TextView) findViewById(R.id.btnMapMove);
+
+        if (mClearValue == true && mMapLock == true) {
+            mapMoveValue.setText("맵잠금");
+            mData.add("맵 잠금 해제");
+            mRecyclerView.smoothScrollToPosition(mData.size()-1);
+            mDroneLog.notifyDataSetChanged();
+            mMapLock = false;
+        } else {
+            mapMoveValue.setText("맵잠금 해제");
+            mData.add("맵 잠금");
+            mRecyclerView.smoothScrollToPosition(mData.size()-1);
+            mDroneLog.notifyDataSetChanged();
+            mMapLock = true;
+        }
     }
 
     // UI Updating //
@@ -779,7 +842,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng droneLocation = new LatLng(mGps.getPosition().getLatitude(), mGps.getPosition().getLongitude());
         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(droneLocation).animate(CameraAnimation.Linear);
 
-        if (clear == true) {
+        if (mClearValue == true && mMapLock == true) {
             marker.setPosition(droneLocation);
             marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
             marker.setFlat(true);
@@ -799,8 +862,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             polylineOverlay.setJoinType(PolylineOverlay.LineJoin.Round);
             polylineOverlay.setColor(Color.RED);
             polylineOverlay.setMap(mNaverMap);
-        } else {
+        } else if (mClearValue == true && mMapLock == false) {
+            marker.setPosition(droneLocation);
+            marker.setIcon(OverlayImage.fromResource(R.drawable.location_overlay_icon));
+            marker.setFlat(true);
+            marker.setWidth(100);
+            marker.setHeight(400);
+            marker.setMap(mNaverMap);
+            marker.setAnchor(new PointF(0.5f, 0.85f));
+            marker.setAngle((float) mDroneYaw.getYaw());
 
+
+            poly.add(0, droneLocation);
+            polylineOverlay.setCoords(poly);
+            poly.set(0, droneLocation);
+            polylineOverlay.setCoords(poly);
+            polylineOverlay.setWidth(4);
+            polylineOverlay.setCapType(PolylineOverlay.LineCap.Round);
+            polylineOverlay.setJoinType(PolylineOverlay.LineJoin.Round);
+            polylineOverlay.setColor(Color.RED);
+            polylineOverlay.setMap(mNaverMap);
         }
     }
 
