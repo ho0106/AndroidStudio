@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,11 +24,17 @@ import com.o3dr.services.android.lib.drone.property.GuidedState;
 import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 
+import java.util.ArrayList;
+
 public class GuideMode extends AppCompatActivity {
-    LatLong mGuidedPoint;
+    LatLng mGuidedPoint; // 가이드모드 목적지 저장.
     Marker mMarkerGuide = new com.naver.maps.map.overlay.Marker();
-    OverlayImage guideIcon = OverlayImage.fromResource(R.drawable.location_overlay_icon);
+    //OverlayImage guideIcon = OverlayImage.fromResource(R.drawable.location_overlay_icon);
     private MainActivity mMainActivity;
+
+    public GuideMode() {
+
+    }
 
     public GuideMode(MainActivity mainActivity) {
         this.mMainActivity = mainActivity;
@@ -35,7 +42,6 @@ public class GuideMode extends AppCompatActivity {
 
     public void DialogSimple(final Drone drone, final LatLong point) {
         AlertDialog.Builder alt_bld = new AlertDialog.Builder(mMainActivity);
-
         alt_bld.setMessage("확인하시면 가이드모드로 전환후 기체가 이동합니다.").setCancelable(false).setPositiveButton("확인", new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int id) {
             // Action for 'Yes' Button
@@ -43,15 +49,21 @@ public class GuideMode extends AppCompatActivity {
                         @Override
                         public void onSuccess() {
                             ControlApi.getApi(drone).goTo(point, true, null);
-                            mMainActivity.alertUser("Success");
+                            mMainActivity.mData.add("현재고도를 유지하며 이동합니다.");
+                            mMainActivity.mRecyclerView.smoothScrollToPosition(mMainActivity.mData.size()-1);
+                            mMainActivity.mDroneLog.notifyDataSetChanged();
                         }
                         @Override
                         public void onError(int i) {
-                            mMainActivity.alertUser("Error");
+                            mMainActivity.mData.add("기체를 이동할 수 없습니다.");
+                            mMainActivity.mRecyclerView.smoothScrollToPosition(mMainActivity.mData.size()-1);
+                            mMainActivity.mDroneLog.notifyDataSetChanged();
                         }
                         @Override
                         public void onTimeout() {
-                            mMainActivity.alertUser("Time out");
+                            mMainActivity.mData.add("가이드모드 시간초과.");
+                            mMainActivity.mRecyclerView.smoothScrollToPosition(mMainActivity.mData.size()-1);
+                            mMainActivity.mDroneLog.notifyDataSetChanged();
                         }
                     });
         }
@@ -67,8 +79,7 @@ public class GuideMode extends AppCompatActivity {
     }
     public static boolean CheckGoal(final Drone drone, LatLng recentLatLng) {
         GuidedState guidedState = drone.getAttribute(AttributeType.GUIDED_STATE);
-        LatLng target = new LatLng(guidedState.getCoordinate().getLatitude(),
-                guidedState.getCoordinate().getLongitude());
+        LatLng target = new LatLng(guidedState.getCoordinate().getLatitude(), guidedState.getCoordinate().getLongitude());
         return target.distanceTo(recentLatLng) <= 1;
     }
 

@@ -87,8 +87,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Boolean openFlag = false;
 
     // RecyclerView
-    private RecyclerView mRecyclerView;
-    private DroneLog mDroneLog;
+    RecyclerView mRecyclerView;
+    DroneLog mDroneLog;
     ArrayList mData = new ArrayList();
 
     // Drone
@@ -101,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GuideMode mGuideMode;
     private Gps mGps;
     private Attitude mDroneYaw;
+    private Float mYaw;
 
     boolean mClearValue = true;
     boolean mMapLock = true;
@@ -134,9 +135,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(mRecyclerView.getContext(),mLinerLayoutManager.getOrientation());
         mRecyclerView.addItemDecoration(dividerItemDecoration);
-
-
         mDroneLog.notifyDataSetChanged();
+
+        mGuideMode = new GuideMode();
 
         int uiOptions = getWindow().getDecorView().getSystemUiVisibility();
         int newUiOptions = uiOptions;
@@ -341,14 +342,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    private void runGuideMode(LatLng coord) {
+    private void runGuideMode(LatLng guideLatLng) {
         State vehicleState = drone.getAttribute(AttributeType.STATE);
-        final LatLong target = new LatLong(coord.latitude, coord.longitude);
+        final LatLong target = new LatLong(guideLatLng.latitude, guideLatLng.longitude);
 
         if (vehicleState.isConnected()) {
             if (vehicleState.isArmed()) {
                 if (vehicleState.isFlying()) {
                     if (vehicleState.getVehicleMode() == vehicleState.getVehicleMode().COPTER_GUIDED) {
+                        mGuideMode.mGuidedPoint = guideLatLng;
+                        mGuideMode.mMarkerGuide.setPosition(guideLatLng);
+                        mGuideMode.mMarkerGuide.setMap(mNaverMap);
                         alertUser("test");
                         ControlApi.getApi(drone).goTo(target, true, new AbstractCommandListener() {
                             @Override
@@ -366,10 +370,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 alertUser("시간초과.");
                             }
                         });
-                        mGuideMode.mMarkerGuide.setPosition(coord);
-                        mGuideMode.mMarkerGuide.setMap(mNaverMap);
+
                     } else if (vehicleState.getVehicleMode() != vehicleState.getVehicleMode().COPTER_GUIDED) {
-                        mGuideMode.mMarkerGuide.setPosition(coord);
+                        mGuideMode.mGuidedPoint = guideLatLng;
+                        mGuideMode.mMarkerGuide.setPosition(guideLatLng);
                         mGuideMode.mMarkerGuide.setMap(mNaverMap);
                         mGuideMode.DialogSimple(drone, target);
                     }
@@ -390,16 +394,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private void GuideCheck() {
-        mGps = this.drone.getAttribute(AttributeType.GPS);
-        LatLng droneLocation = new LatLng(mGps.getPosition().getLatitude(), mGps.getPosition().getLongitude());
-        if(mGuideMode.CheckGoal(this.drone, droneLocation))
+    private void stopGuideMode() {
+        if(mGuideMode.CheckGoal(this.drone, mGuideMode.mGuidedPoint))
         {
-            mGuideMode.mMarkerGuide.setMap(null);
             VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER, new AbstractCommandListener() {
                 @Override
                 public void onSuccess() {
-                    mData.add("목표지점에 도착.");
+                    mGuideMode.mMarkerGuide.setMap(null);
+                    mData.add("목표지점에 도착. Loiter모드로 전환.");
                     mRecyclerView.smoothScrollToPosition(mData.size()-1);
                     mDroneLog.notifyDataSetChanged();
                 }
@@ -523,10 +525,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             case AttributeEvent.GPS_POSITION:
                 updateDroneLocation();
+                stopGuideMode();
                 break;
 
             case AttributeEvent.GUIDED_POINT_UPDATED:
-                GuideCheck();
                 break;
 
             case AttributeEvent.AUTOPILOT_MESSAGE:
@@ -837,7 +839,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void updateDroneLocation() {
         mGps = this.drone.getAttribute(AttributeType.GPS);
-        mDroneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
 
         LatLng droneLocation = new LatLng(mGps.getPosition().getLatitude(), mGps.getPosition().getLongitude());
         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(droneLocation).animate(CameraAnimation.Linear);
@@ -850,7 +851,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             marker.setHeight(400);
             marker.setMap(mNaverMap);
             marker.setAnchor(new PointF(0.5f, 0.85f));
-            marker.setAngle((float) mDroneYaw.getYaw());
+            marker.setAngle(mYaw);
             mNaverMap.moveCamera(cameraUpdate);
 
             poly.add(0, droneLocation);
@@ -870,8 +871,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             marker.setHeight(400);
             marker.setMap(mNaverMap);
             marker.setAnchor(new PointF(0.5f, 0.85f));
-            marker.setAngle((float) mDroneYaw.getYaw());
-
+            marker.setAngle(mYaw);
 
             poly.add(0, droneLocation);
             polylineOverlay.setCoords(poly);
@@ -967,7 +967,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void updateYaw() { // Yaw value
         TextView yawTextView = (TextView) findViewById(R.id.YAWValueTextView);
         mDroneYaw = this.drone.getAttribute(AttributeType.ATTITUDE);
-        yawTextView.setText(String.format("%3.0f", mDroneYaw.getYaw()) + "deg");
+        mYaw = (float) mDroneYaw.getYaw();
+        if (mYaw < 0) {
+            mYaw = mYaw + 360;
+        } else {
+            mYaw = (float) mDroneYaw.getYaw();
+        }
+        yawTextView.setText(String.format("%3.0f", mYaw) + "deg");
     }
 
     protected void updateSatellitesCount() { // Satellite Count
