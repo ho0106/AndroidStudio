@@ -137,8 +137,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mRecyclerView.addItemDecoration(dividerItemDecoration);
         mDroneLog.notifyDataSetChanged();
 
-        mGuideMode = new GuideMode();
-
         int uiOptions = getWindow().getDecorView().getSystemUiVisibility();
         int newUiOptions = uiOptions;
         boolean isImmersiveModeEnabled = ((uiOptions | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY) == uiOptions);
@@ -395,30 +393,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void stopGuideMode() {
-        if(mGuideMode.CheckGoal(this.drone, mGuideMode.mGuidedPoint))
-        {
-            VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER, new AbstractCommandListener() {
-                @Override
-                public void onSuccess() {
-                    mGuideMode.mMarkerGuide.setMap(null);
-                    mData.add("목표지점에 도착. Loiter모드로 전환.");
-                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
-                    mDroneLog.notifyDataSetChanged();
-                }
+        mGps = this.drone.getAttribute(AttributeType.GPS);
+        LatLng droneLocation = new LatLng(mGps.getPosition().getLatitude(), mGps.getPosition().getLongitude());
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
 
-                @Override
-                public void onError(int executionError) {
+        if (vehicleState.isFlying() && vehicleState.getVehicleMode() == vehicleState.getVehicleMode().COPTER_GUIDED) {
+            if (mGuideMode.CheckGoal(this.drone, droneLocation)) {
+                VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER, new AbstractCommandListener() {
+                    @Override
+                    public void onSuccess() {
+                        mGuideMode.mMarkerGuide.setMap(null);
+                        mGuideMode.mGuidedPoint = null;
+                        mData.add("목표지점에 도착. 기체 착륙.");
+                        mRecyclerView.smoothScrollToPosition(mData.size() - 1);
+                        mDroneLog.notifyDataSetChanged();
+                    }
 
-                }
+                    @Override
+                    public void onError(int executionError) {
 
-                @Override
-                public void onTimeout() {
+                    }
 
-                }
-            });
+                    @Override
+                    public void onTimeout() {
+
+                    }
+                });
+            }
         }
     }
-
 
     // Drone Start //
 
@@ -459,7 +462,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mDroneLog.notifyDataSetChanged();
     }
 
-    //Drone Listener //
+    // Drone Listener //
 
     @Override
     public void onDroneEvent(String event, Bundle extras) {
@@ -528,9 +531,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 stopGuideMode();
                 break;
 
-            case AttributeEvent.GUIDED_POINT_UPDATED:
-                break;
-
             case AttributeEvent.AUTOPILOT_MESSAGE:
 
             case AttributeEvent.AUTOPILOT_ERROR:
@@ -557,7 +557,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    //UI Events
+    // UI Events //
 
     public void onBtnTakeOffAltitudeTap(View view) {
         Button upAltitudeButton = (Button) findViewById(R.id.btnUpAltitude);
