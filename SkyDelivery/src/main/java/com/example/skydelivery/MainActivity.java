@@ -23,6 +23,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -102,6 +103,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Gps mGps;
     private Attitude mDroneYaw;
     private Float mYaw;
+    private double mFlightWidth;
+    private int mABDistance;
 
     boolean mClearValue = true;
     boolean mMapLock = true;
@@ -559,68 +562,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     // UI Events //
 
-    public void onBtnTakeOffAltitudeTap(View view) {
-        Button upAltitudeButton = (Button) findViewById(R.id.btnUpAltitude);
-        Button downAltitudeButton = (Button) findViewById(R.id.btnDownAltitude);
-
-        if (upAltitudeButton.getVisibility() == view.GONE) {
-            upAltitudeButton.setVisibility(View.VISIBLE);
-            downAltitudeButton.setVisibility(View.VISIBLE);
-        } else {
-            upAltitudeButton.setVisibility(View.GONE);
-            downAltitudeButton.setVisibility(View.GONE);
-        }
-    }
-
-    public void onBtnUpDownAltitudeTap(View view) {
-        TextView AltitudeValue = (TextView) findViewById(R.id.btnTakeOffAltitude);
-
-        switch (view.getId()) {
-            case R.id.btnUpAltitude:
-                if (mDroneAltitude < 9.51) {
-                    mDroneAltitude += 0.5;
-                    AltitudeValue.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
-                    mData.add(String.format("이륙 고도 변경 : %2.1fm", mDroneAltitude));
-                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
-                    mDroneLog.notifyDataSetChanged();
-                } else if (mDroneAltitude >= 10.0) {
-                    mData.add("고도 10m이상 설정 불가");
-                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
-                    mDroneLog.notifyDataSetChanged();
-                }
-                break;
-            case R.id.btnDownAltitude:
-                if (mDroneAltitude >= 3.5) {
-                    mDroneAltitude -= 0.5;
-                    AltitudeValue.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
-                    mData.add(String.format("이륙 고도 변경 : %2.1fm", mDroneAltitude));
-                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
-                    mDroneLog.notifyDataSetChanged();
-                } else if (mDroneAltitude <= 3.49) {
-                    mData.add("고도 3m이하 설정 불가");
-                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
-                    mDroneLog.notifyDataSetChanged();
-                }
-                break;
-        }
-    }
-
-    public void onBtnMissionTap(View view) {
-        Button ABMissionButton = (Button) findViewById(R.id.btnABMission);
-        Button polygonMissionButton = (Button) findViewById(R.id.btnPolygonMission);
-        Button missionCancelButton = (Button) findViewById(R.id.btnMissionCancel);
-
-        if (ABMissionButton.getVisibility() == View.GONE) {
-            ABMissionButton.setVisibility(View.VISIBLE);
-            polygonMissionButton.setVisibility(View.VISIBLE);
-            missionCancelButton.setVisibility(View.VISIBLE);
-        } else {
-            ABMissionButton.setVisibility(View.GONE);
-            polygonMissionButton.setVisibility(View.GONE);
-            missionCancelButton.setVisibility(View.GONE);
-        }
-    }
-
     public void onBtnConnectTap(View view) {
         if (this.drone.isConnected()) {
             this.drone.disconnect();
@@ -835,6 +776,151 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    public void onABDistanceTap(View view) {
+        Button upDistanceButton = (Button) findViewById(R.id.btnUpDistance);
+        Button downDistanceButton = (Button) findViewById(R.id.btnDownDistance);
+
+        if (upDistanceButton.getVisibility() == View.GONE) {
+            upDistanceButton.setVisibility(View.VISIBLE);
+            downDistanceButton.setVisibility(View.VISIBLE);
+        } else {
+            upDistanceButton.setVisibility(View.GONE);
+            downDistanceButton.setVisibility(View.GONE);
+        }
+    }
+
+    public void onSetABDistanceTap(View view) {
+        TextView ABDistanceValue = (TextView) findViewById(R.id.btnABDistance);
+
+        switch (view.getId()) {
+            case R.id.btnUpDistance:
+                mABDistance += 10;
+                ABDistanceValue.setText(String.format("%dm\nAB거리", mABDistance));
+                break;
+            case R.id.btnDownDistance:
+
+                if (mABDistance > 0) {
+                    mABDistance -= 10;
+                    ABDistanceValue.setText(String.format("%dm\nAB거리", mABDistance));
+                }
+                break;
+        }
+    }
+
+    public void onBtnFlightWidthTap(View view) {
+        Button upWidthButton = (Button) findViewById(R.id.btnUpWidth);
+        Button downWidthButton = (Button) findViewById(R.id.btnDownWidth);
+
+        if (upWidthButton.getVisibility() == View.GONE) {
+            upWidthButton.setVisibility(View.VISIBLE);
+            downWidthButton.setVisibility(View.VISIBLE);
+        } else {
+            upWidthButton.setVisibility(View.GONE);
+            downWidthButton.setVisibility(View.GONE);
+        }
+    }
+
+    public void onBtnSetFlightWidthTap(View view) {
+        TextView widthValue = (TextView) findViewById(R.id.btnFlightWidth);
+
+        switch (view.getId()) {
+            case R.id.btnUpWidth:
+                mFlightWidth += 0.5;
+                widthValue.setText(String.format("%2.1fm\n비행폭", mFlightWidth));
+                break;
+            case R.id.btnDownWidth:
+                if (mFlightWidth > 0) {
+                    mFlightWidth -= 0.5;
+                    widthValue.setText(String.format("%2.1fm\n비행폭", mFlightWidth));
+                }
+                break;
+        }
+    }
+
+    public void onBtnTakeOffAltitudeTap(View view) {
+        Button upAltitudeButton = (Button) findViewById(R.id.btnUpAltitude);
+        Button downAltitudeButton = (Button) findViewById(R.id.btnDownAltitude);
+
+        if (upAltitudeButton.getVisibility() == view.GONE) {
+            upAltitudeButton.setVisibility(View.VISIBLE);
+            downAltitudeButton.setVisibility(View.VISIBLE);
+        } else {
+            upAltitudeButton.setVisibility(View.GONE);
+            downAltitudeButton.setVisibility(View.GONE);
+        }
+    }
+
+    public void onBtnSetAltitudeTap(View view) {
+        TextView altitudeValue = (TextView) findViewById(R.id.btnTakeOffAltitude);
+
+        switch (view.getId()) {
+            case R.id.btnUpAltitude:
+                if (mDroneAltitude < 9.51) {
+                    mDroneAltitude += 0.5;
+                    altitudeValue.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
+                    mData.add(String.format("이륙 고도 변경 : %2.1fm", mDroneAltitude));
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                } else if (mDroneAltitude >= 10.0) {
+                    mData.add("고도 10m이상 설정 불가");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                }
+                break;
+            case R.id.btnDownAltitude:
+                if (mDroneAltitude >= 3.5) {
+                    mDroneAltitude -= 0.5;
+                    altitudeValue.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
+                    mData.add(String.format("이륙 고도 변경 : %2.1fm", mDroneAltitude));
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                } else if (mDroneAltitude <= 3.49) {
+                    mData.add("고도 3m이하 설정 불가");
+                    mRecyclerView.smoothScrollToPosition(mData.size()-1);
+                    mDroneLog.notifyDataSetChanged();
+                }
+                break;
+        }
+    }
+
+    public void onBtnMissionTap(View view) {
+        Button ABMissionButton = (Button) findViewById(R.id.btnABMission);
+        Button polygonMissionButton = (Button) findViewById(R.id.btnPolygonMission);
+        Button missionCancelButton = (Button) findViewById(R.id.btnMissionCancel);
+
+        if (ABMissionButton.getVisibility() == View.GONE) {
+            ABMissionButton.setVisibility(View.VISIBLE);
+            polygonMissionButton.setVisibility(View.VISIBLE);
+            missionCancelButton.setVisibility(View.VISIBLE);
+        } else {
+            ABMissionButton.setVisibility(View.GONE);
+            polygonMissionButton.setVisibility(View.GONE);
+            missionCancelButton.setVisibility(View.GONE);
+        }
+    }
+
+    public void onBtnSetMissionTap(View view) {
+        Button ABMissionButton = (Button) findViewById(R.id.btnABMission);
+        Button polygonMissionButton = (Button) findViewById(R.id.btnPolygonMission);
+        Button missionCancelButton = (Button) findViewById(R.id.btnMissionCancel);
+        TextView missionValue = (TextView) findViewById(R.id.btnMission);
+
+        switch (view.getId()) {
+            case R.id.btnABMission:
+                missionValue.setText("AB");
+                break;
+            case R.id.btnPolygonMission:
+                missionValue.setText("다각형");
+                break;
+            case R.id.btnMissionCancel:
+                missionValue.setText("미션");
+                ABMissionButton.setVisibility(View.GONE);
+                polygonMissionButton.setVisibility(View.GONE);
+                missionCancelButton.setVisibility(View.GONE);
+                break;
+        }
+    }
+
     // UI Updating //
 
     public void updateDroneLocation() {
@@ -889,28 +975,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         Button connectButton = (Button) findViewById(R.id.btnConnect);
         Button armButton = (Button) findViewById(R.id.btnArmTakeOff);
-        Button missionButton = (Button) findViewById(R.id.btnMission);
-        Button mapMoveButton = (Button) findViewById(R.id.btnMapMove);
-        Button clearButton = (Button) findViewById(R.id.btnClear);
-        Button takeOffAltitudeButton = (Button) findViewById(R.id.btnTakeOffAltitude);
+
+        LinearLayout layoutARM = findViewById(R.id.layoutARM);
+        LinearLayout layoutDroneAttribute = findViewById(R.id.layoutDroneAttribute);
+
         TextView altitudeTextView = (TextView) findViewById(R.id.btnTakeOffAltitude);
 
         if (isConnected) {
             connectButton.setText("Disconnect");
-            armButton.setVisibility(View.VISIBLE);
-            missionButton.setVisibility(View.VISIBLE);
-            mapMoveButton.setVisibility(View.VISIBLE);
-            clearButton.setVisibility(View.VISIBLE);
-            takeOffAltitudeButton.setVisibility(View.VISIBLE);
+            layoutARM.setVisibility(View.VISIBLE);
+            layoutDroneAttribute.setVisibility(View.VISIBLE);
+            altitudeTextView.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
         } else {
             connectButton.setText("Connect");
-            armButton.setVisibility(View.INVISIBLE);
-            missionButton.setVisibility(View.INVISIBLE);
-            mapMoveButton.setVisibility(View.INVISIBLE);
-            clearButton.setVisibility(View.INVISIBLE);
-            takeOffAltitudeButton.setVisibility(View.INVISIBLE);
-            altitudeTextView.setText(String.format("%2.1fm\n이륙고도", mDroneAltitude));
-
+            layoutARM.setVisibility(View.INVISIBLE);
+            layoutDroneAttribute.setVisibility(View.INVISIBLE);
         }
 
         if (vehicleState.isFlying()) {
